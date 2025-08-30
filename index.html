@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>To-Do App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: hwb(202 7% 30%);
+      text-align: center;
+      padding: 30px;
+    }
+    h2 {
+      color: #333;
+      background: #e0f7fa;
+      padding: 12px 0;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+    }
+    #taskInput {
+      width: 250px;
+      padding: 8px;
+      font-size: 14px;
+    }
+    button {
+      padding: 8px 12px;
+      margin-left: 5px;
+      cursor: pointer;
+      background: #3ecb43;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+      margin-top: 20px;
+    }
+    li {
+      padding: 10px;
+      background: #fff;
+      margin-bottom: 8px;
+      border-radius: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    li.completed {
+      text-decoration: line-through;
+      color: gray;
+    }
+    .deleteBtn {
+      background: red;
+      color: white;
+      padding: 5px 8px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .deleteBtn:hover {
+      background: hsl(0, 63%, 34%);
+      color: #fff;
+    }
+    .filterBtn {
+      padding: 8px 18px;
+      margin: 0 4px;
+      background: #b2cfc2;
+      color: #222;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .filterBtn:hover {
+      background: #3ecb43;
+      color: #fff;
+    }
+    .title-container {
+      width: 100%;
+      background: #e0f7fa;
+      padding: 30px 0 20px 0;
+      margin-bottom: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .editBtn {
+      background: #ffc107;
+      color: #222;
+      padding: 5px 8px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 5px;
+    }
+    .editBtn:hover {
+      background: #ff9800;
+      color: #fff;
+    }
+    .editInput {
+      width: 60%;
+      padding: 5px;
+      font-size: 14px;
+      margin-right: 8px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    li > div {
+      display: flex;
+      gap: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="title-container">
+    <h2>My To-Do App</h2>
+  </div>
+
+  <!-- Filter Buttons -->
+  <div id="filterButtons" style="margin-bottom: 25px;">
+    <button class="filterBtn" onclick="filterTasks('all')">All</button>
+    <button class="filterBtn" onclick="filterTasks('completed')">Completed</button>
+    <button class="filterBtn" onclick="filterTasks('pending')">Pending</button>
+    <button class="filterBtn" onclick="filterTasks('overdue')">Overdue</button>
+  </div>
+
+  <input type="text" id="taskInput" placeholder="Add new task...">
+  <button onclick="addTask()">Add</button>
+
+  <!-- Clear All Tasks Button -->
+  <button onclick="clearAllTasks()" style="background:#e53935; color:#fff; margin-bottom:15px;">Clear All Tasks</button>
+
+  <ul id="taskList"></ul>
+
+  <script>
+    // ✅ Save tasks to localStorage
+    function saveTasks() {
+      const tasks = [];
+      document.querySelectorAll("#taskList li").forEach(li => {
+        tasks.push({
+          text: li.querySelector('.taskText') ? li.querySelector('.taskText').textContent : "",
+          completed: li.classList.contains('completed'),
+          created: li.dataset.created
+        });
+      });
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
+
+    // ✅ Load tasks from localStorage
+    function loadTasks() {
+      const saved = JSON.parse(localStorage.getItem("tasks")) || [];
+      saved.forEach(task => {
+        let li = document.createElement("li");
+        // Edit button placed next to delete button
+        li.innerHTML = `
+          <span class="taskText">${task.text}</span>
+          <div>
+            <button class="deleteBtn" onclick="deleteTask(this)">X</button>
+            <button class="editBtn" onclick="editTask(this)">Edit</button>
+          </div>
+        `;
+        li.dataset.created = task.created;
+        if (task.completed) li.classList.add("completed");
+        li.addEventListener("click", function(e) {
+          if (e.target.classList.contains('deleteBtn') || e.target.classList.contains('editBtn')) return;
+          li.classList.toggle("completed");
+          saveTasks();
+        });
+        document.getElementById("taskList").appendChild(li);
+      });
+    }
+
+    // ✅ Task Status Check
+    function getTaskStatus(li) {
+      if (li.classList.contains('completed')) return 'completed';
+      const created = li.dataset.created ? new Date(li.dataset.created) : new Date();
+      const now = new Date();
+      const diff = (now - created) / (1000 * 60 * 60 * 24);
+      if (diff > 1) return 'overdue';
+      return 'pending';
+    }
+
+    // ✅ Add Task
+    function addTask() {
+      let input = document.getElementById("taskInput");
+      let taskText = input.value.trim();
+
+      if (taskText === "") {
+        alert("Please enter a task!");
+        return;
+      }
+
+      let li = document.createElement("li");
+      // Edit button placed next to delete button
+      li.innerHTML = `
+        <span class="taskText">${taskText}</span>
+        <div>
+          <button class="deleteBtn" onclick="deleteTask(this)">X</button>
+          <button class="editBtn" onclick="editTask(this)">Edit</button>
+        </div>
+      `;
+      li.dataset.created = new Date().toISOString();
+      li.addEventListener("click", function(e) {
+        if (e.target.classList.contains('deleteBtn') || e.target.classList.contains('editBtn')) return;
+        li.classList.toggle("completed");
+        saveTasks();
+      });
+
+      document.getElementById("taskList").appendChild(li);
+      input.value = "";
+      saveTasks();
+    }
+
+    // ✅ Delete Task
+    function deleteTask(button) {
+      button.parentElement.remove();
+      saveTasks();
+    }
+
+    // ✅ Edit Task
+    function editTask(button) {
+      const li = button.parentElement.parentElement;
+      const span = li.querySelector('.taskText');
+      const currentText = span.textContent;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentText;
+      input.className = 'editInput';
+      li.insertBefore(input, span);
+      li.removeChild(span);
+      button.textContent = 'Save';
+
+      button.onclick = function() {
+        saveEdit(li, input, button);
+      };
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          saveEdit(li, input, button);
+        }
+      });
+      input.focus();
+    }
+
+    // ✅ Save Edited Task
+    function saveEdit(li, input, button) {
+      const newText = input.value.trim();
+      if (newText === "") {
+        alert("Task cannot be empty!");
+        return;
+      }
+      const span = document.createElement('span');
+      span.className = 'taskText';
+      span.textContent = newText;
+      li.insertBefore(span, input);
+      li.removeChild(input);
+      button.textContent = 'Edit';
+      button.onclick = function() {
+        editTask(button);
+      };
+      saveTasks();
+    }
+
+    // ✅ Enter key also adds task
+    document.getElementById("taskInput").addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        addTask();
+      }
+    });
+
+    // ✅ Filter Tasks
+    function filterTasks(status) {
+      const tasks = document.querySelectorAll("#taskList li");
+      tasks.forEach(li => {
+        const taskStatus = getTaskStatus(li);
+        if (status === 'all' || taskStatus === status) {
+          li.style.display = '';
+        } else {
+          li.style.display = 'none';
+        }
+      });
+    }
+
+    // ✅ Clear All Tasks
+    function clearAllTasks() {
+      localStorage.removeItem("tasks");
+      document.getElementById("taskList").innerHTML = "";
+    }
+
+    // ✅ Load tasks on page load
+    window.onload = loadTasks;
+  </script>
+
+</body>
+</html>
